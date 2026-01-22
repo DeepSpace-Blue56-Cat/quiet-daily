@@ -15,6 +15,24 @@ const prompts = [
   "One gentle goal for tomorrow…"
 ];
 
+// ---- Online / Offline indicator ----
+const netStatusEl = document.getElementById("netStatus");
+
+function updateNetStatus() {
+  const online = navigator.onLine;
+  if (!netStatusEl) return;
+
+  netStatusEl.textContent = online ? "Online" : "Offline";
+  netStatusEl.classList.toggle("offline", !online);
+}
+
+window.addEventListener("online", updateNetStatus);
+window.addEventListener("offline", updateNetStatus);
+
+
+
+
+
 function startOfDayISO(d = new Date()) {
   const x = new Date(d);
   x.setHours(0,0,0,0);
@@ -235,6 +253,8 @@ function renderHabits() {
         state.logs[k].completed = (state.logs[k].completed || []).filter(id => id !== h.id);
       });
       saveState();
+
+updateNetStatus();
       renderToday();
       renderHabits();
     });

@@ -181,3 +181,30 @@ button.danger{
 }
 
 .hidden{ display:none; }
+
+.brandText { width: 100%; }
+
+.titleRow{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.statusPill{
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* When offline, we’ll flip it to a warmer warning vibe */
+.statusPill.offline{
+  border-color: #e2c3a6;
+  background: #fff4ea;
+  color: #8a4b1f;
+}
+
