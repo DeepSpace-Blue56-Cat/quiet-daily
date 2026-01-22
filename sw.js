@@ -1,5 +1,5 @@
 // sw.js — Quiet Daily offline cache (v1)
-const CACHE_NAME = "quiet-daily-v1";
+const CACHE_NAME = "quiet-daily-v2";
 const ASSETS = [
   "./",
   "./index.html",
