@@ -52,6 +52,25 @@ const todayKey = startOfDayISO();
 
 // ---------------- ONLINE / OFFLINE INDICATOR ----------------
 const netStatusEl = document.getElementById("netStatus");
+const toastEl = document.getElementById("toast");
+let toastTimer = null;
+
+function showToast(message, kind = "") {
+  if (!toastEl) return;
+
+  toastEl.textContent = message;
+  toastEl.classList.remove("offline");
+  if (kind) toastEl.classList.add(kind);
+
+  toastEl.classList.add("show");
+
+  // reset timer if called again
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toastEl.classList.remove("show");
+  }, 2600);
+}
+
 
 function updateNetStatus() {
   if (!netStatusEl) return;
@@ -64,8 +83,16 @@ function updateNetStatus() {
   }
 }
 
-window.addEventListener("online", updateNetStatus);
-window.addEventListener("offline", updateNetStatus);
+window.addEventListener("online", () => {
+  updateNetStatus();
+  // no toast when coming online (keeps it calm)
+});
+
+window.addEventListener("offline", () => {
+  updateNetStatus();
+  showToast("You’re offline — everything will still save on this device.", "offline");
+});
+
 
 // ---------------- LOG HELPERS ----------------
 function getLog(dayKey) {
