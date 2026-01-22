@@ -191,13 +191,14 @@ button.danger{
 }
 
 .statusPill{
+  display: none; /* hidden by default */
   font-size: 12px;
   font-weight: 700;
   padding: 6px 10px;
   border-radius: 999px;
-  border: 1px solid var(--line);
-  background: #fff;
-  color: var(--muted);
+  border: 1px solid #e2c3a6;
+  background: #fff4ea;
+  color: #8a4b1f;
   white-space: nowrap;
 }
 
