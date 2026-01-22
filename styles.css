@@ -245,3 +245,21 @@ button.danger{
   color: #6e3c16;
 }
 
+.aboutMeta{
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.metaRow{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.metaKey{ font-weight: 700; color: var(--ink); }
+.metaVal{ font-variant-numeric: tabular-nums; }
+
