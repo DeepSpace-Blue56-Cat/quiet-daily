@@ -93,6 +93,16 @@
     </section>
   </main>
 
-  <script src="app.js"></script>
+<script src="app.js"></script>
+
+<script>
+  // Register service worker for offline caching
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(console.error);
+    });
+  }
+</script>
 </body>
 </html>
+
