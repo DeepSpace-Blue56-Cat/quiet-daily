@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f5f1ea" />
+  <title>Quiet Daily</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">QD</div>
+      <div>
+        <h1>Quiet Daily</h1>
+        <p class="subtitle">Showing up counts.</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Main tabs">
+      <button class="tab active" role="tab" aria-selected="true" data-tab="today">Today</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="habits">Habits</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="settings">Settings</button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- TODAY -->
+    <section id="tab-today" class="panel active" role="tabpanel">
+      <div class="card">
+        <h2>Today’s Habits</h2>
+        <div id="todayEmpty" class="hint hidden">
+          No habits yet. Add one on the Habits tab.
+        </div>
+        <div id="todayHabits" class="list"></div>
+      </div>
+
+      <div class="card">
+        <h2>Today’s Note</h2>
+        <p id="prompt" class="prompt"></p>
+        <textarea id="journal" placeholder="Write a few gentle lines…"></textarea>
+        <div class="row">
+          <span class="small" id="autosave">Autosaved</span>
+          <span class="small" id="dateLabel"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Install on iPhone</h2>
+        <p class="small">
+          Open this page in Safari → Share → <b>Add to Home Screen</b>.
+        </p>
+      </div>
+    </section>
+
+    <!-- HABITS -->
+    <section id="tab-habits" class="panel" role="tabpanel">
+      <div class="card">
+        <h2>Add a Habit</h2>
+        <div class="row">
+          <input id="habitName" type="text" placeholder="e.g., Drink water" maxlength="40" />
+          <button id="addHabit" class="primary">Add</button>
+        </div>
+        <p class="small muted">Keep it tiny. One simple habit is enough.</p>
+      </div>
+
+      <div class="card">
+        <h2>Your Habits</h2>
+        <div id="habitsEmpty" class="hint hidden">No habits yet.</div>
+        <div id="habitsList" class="list"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="tab-settings" class="panel" role="tabpanel">
+      <div class="card">
+        <h2>Settings</h2>
+        <div class="row">
+          <button id="reset" class="danger">Reset all data</button>
+        </div>
+        <p class="small muted">
+          This clears habits and journal entries stored on this device.
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>About</h2>
+        <p class="small">
+          Quiet Daily is a gentle habit + journal space. No login. No pressure.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "Quiet Daily",
+  "short_name": "Quiet Daily",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f1ea",
+  "theme_color": "#f5f1ea",
+  "icons": []
+}
