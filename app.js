@@ -9,6 +9,7 @@
    - Version / cache / build labels (Settings)
    - Weekly history (This week / Last week selector)
    - Export / Import backup (.json)
+   - Reorder habits (Up / Down)
 */
 
 const STORAGE_KEY = "quiet_daily_state_v1";
@@ -77,7 +78,7 @@ const todayKey = startOfDayISO();
 
 // ---------------- INIT AFTER DOM READY ----------------
 window.addEventListener("DOMContentLoaded", () => {
-  // Elements (all optional-safe)
+  // Elements
   const netStatusEl = document.getElementById("netStatus");
   const toastEl = document.getElementById("toast");
 
@@ -187,6 +188,23 @@ window.addEventListener("DOMContentLoaded", () => {
       } else break;
     }
     return streak;
+  }
+
+  // ---------------- REORDER HABITS ----------------
+  function moveHabit(habitId, direction) {
+    const idx = state.habits.findIndex((h) => h.id === habitId);
+    if (idx < 0) return;
+
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= state.habits.length) return;
+
+    const [item] = state.habits.splice(idx, 1);
+    state.habits.splice(newIdx, 0, item);
+
+    saveState();
+    renderToday();
+    renderHabits();
+    renderWeekly();
   }
 
   // ---------------- HEADER / PROMPT ----------------
@@ -372,7 +390,6 @@ window.addEventListener("DOMContentLoaded", () => {
         const text = await file.text();
         const parsed = JSON.parse(text);
 
-        // Accept either {data:{habits,logs}} (our export) OR {habits,logs} (raw)
         const incoming = parsed && parsed.data ? parsed.data : parsed;
 
         const clean = sanitizeImportedState(incoming);
@@ -450,7 +467,7 @@ window.addEventListener("DOMContentLoaded", () => {
     const empty = document.getElementById("habitsEmpty");
     if (empty) empty.classList.toggle("hidden", state.habits.length !== 0);
 
-    state.habits.forEach((h) => {
+    state.habits.forEach((h, index) => {
       const item = document.createElement("div");
       item.className = "item";
 
@@ -472,6 +489,25 @@ window.addEventListener("DOMContentLoaded", () => {
       textWrap.append(name, meta);
       left.append(dot, textWrap);
 
+      // Controls: Up / Down / Delete
+      const controls = document.createElement("div");
+      controls.style.display = "flex";
+      controls.style.gap = "8px";
+
+      const up = document.createElement("button");
+      up.className = "iconBtn";
+      up.textContent = "↑";
+      up.disabled = index === 0;
+      up.setAttribute("aria-label", `Move "${h.name}" up`);
+      up.addEventListener("click", () => moveHabit(h.id, -1));
+
+      const down = document.createElement("button");
+      down.className = "iconBtn";
+      down.textContent = "↓";
+      down.disabled = index === state.habits.length - 1;
+      down.setAttribute("aria-label", `Move "${h.name}" down`);
+      down.addEventListener("click", () => moveHabit(h.id, 1));
+
       const del = document.createElement("button");
       del.className = "iconBtn";
       del.textContent = "Delete";
@@ -491,7 +527,9 @@ window.addEventListener("DOMContentLoaded", () => {
         renderWeekly();
       });
 
-      item.append(left, del);
+      controls.append(up, down, del);
+
+      item.append(left, controls);
       list.append(item);
     });
   }
@@ -504,7 +542,6 @@ window.addEventListener("DOMContentLoaded", () => {
     weeklyEmpty.classList.toggle("hidden", state.habits.length !== 0);
     if (state.habits.length === 0) return;
 
-    // weekOffset: 0 = this week, 1 = last week
     const base = addDays(new Date(), -7 * weekOffset);
     const weekStartISO = startOfWeekISO(base);
     const weekStartDate = isoToDate(weekStartISO);
@@ -545,7 +582,10 @@ window.addEventListener("DOMContentLoaded", () => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "dayBtn" + (done ? " done" : "");
-        btn.setAttribute("aria-label", `${h.name} ${labels[i]} ${done ? "completed" : "not completed"}`);
+        btn.setAttribute(
+          "aria-label",
+          `${h.name} ${labels[i]} ${done ? "completed" : "not completed"}`
+        );
 
         const lab = document.createElement("div");
         lab.className = "dayLabel";
