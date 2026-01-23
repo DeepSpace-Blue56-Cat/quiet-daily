@@ -10,7 +10,7 @@
    - Weekly history (This week / Last week selector)
    - Export / Import backup (.json)
    - Reorder habits (Up / Down)
-   - Weekly targets (1–7/week) + progress bars
+   - (Targets temporarily removed from UI)
 */
 
 const STORAGE_KEY = "quiet_daily_state_v1";
@@ -30,14 +30,17 @@ function startOfDayISO(d = new Date()) {
   x.setHours(0, 0, 0, 0);
   return x.toISOString().slice(0, 10); // YYYY-MM-DD
 }
+
 function isoToDate(iso) {
   return new Date(iso + "T00:00:00");
 }
+
 function addDays(date, delta) {
   const d = new Date(date);
   d.setDate(d.getDate() + delta);
   return d;
 }
+
 function startOfWeekISO(date = new Date()) {
   // Monday-start week: Monday = 0 ... Sunday = 6
   const d = new Date(date);
@@ -46,12 +49,6 @@ function startOfWeekISO(date = new Date()) {
   const mondayIndex = (day + 6) % 7; // Mon=0, Tue=1 ... Sun=6
   d.setDate(d.getDate() - mondayIndex);
   return startOfDayISO(d);
-}
-function clampInt(n, min, max, fallback) {
-  const x = Number(n);
-  if (!Number.isFinite(x)) return fallback;
-  const y = Math.round(x);
-  return Math.min(max, Math.max(min, y));
 }
 
 // ---------------- STATE ----------------
@@ -62,11 +59,10 @@ function loadState() {
     const parsed = JSON.parse(raw);
     if (!parsed.habits || !parsed.logs) return { habits: [], logs: {} };
 
-    // Backfill targetPerWeek for older saves
-    parsed.habits = (parsed.habits || []).map(h => ({
-      ...h,
-      targetPerWeek: clampInt(h.targetPerWeek, 1, 7, 7)
-    }));
+    // Keep any extra habit fields if they exist (like old targets),
+    // but we won’t display them.
+    parsed.habits = Array.isArray(parsed.habits) ? parsed.habits : [];
+    parsed.logs = parsed.logs && typeof parsed.logs === "object" ? parsed.logs : {};
 
     return parsed;
   } catch {
@@ -115,6 +111,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // ---------------- OFFLINE BADGE ----------------
   function updateNetStatus() {
     if (!netStatusEl) return;
+
     if (navigator.onLine) {
       netStatusEl.style.display = "none";
     } else {
@@ -125,11 +122,12 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // ---------------- OFFLINE TOAST ----------------
   let toastTimer = null;
+
   function showToast(message, kind = "") {
     if (!toastEl) return;
 
     toastEl.textContent = message;
-    toastEl.className = "toast";
+    toastEl.className = "toast"; // reset classes
     if (kind) toastEl.classList.add(kind);
 
     toastEl.classList.add("show");
@@ -141,6 +139,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   window.addEventListener("online", () => updateNetStatus());
+
   window.addEventListener("offline", () => {
     updateNetStatus();
     showToast("You’re offline — everything will still save on this device.", "offline");
@@ -148,7 +147,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // ---------------- LOG HELPERS ----------------
   function getLog(dayKey) {
-    if (!state.logs[dayKey]) state.logs[dayKey] = { completed: [], journal: "" };
+    if (!state.logs[dayKey]) {
+      state.logs[dayKey] = { completed: [], journal: "" };
+    }
     return state.logs[dayKey];
   }
 
@@ -159,6 +160,7 @@ window.addEventListener("DOMContentLoaded", () => {
   function toggleCompletedForDay(dayKey, habitId) {
     const log = getLog(dayKey);
     const has = log.completed.includes(habitId);
+
     if (has) log.completed = log.completed.filter((id) => id !== habitId);
     else log.completed.push(habitId);
 
@@ -207,18 +209,9 @@ window.addEventListener("DOMContentLoaded", () => {
     renderWeekly();
   }
 
-  // ---------------- TARGETS ----------------
-  function setTarget(habitId, targetPerWeek) {
-    const h = state.habits.find(x => x.id === habitId);
-    if (!h) return;
-    h.targetPerWeek = clampInt(targetPerWeek, 1, 7, 7);
-    saveState();
-    renderHabits();
-    renderWeekly();
-  }
-
   // ---------------- HEADER / PROMPT ----------------
   if (dateLabelEl) dateLabelEl.textContent = todayKey;
+
   const dayNum = new Date().getDate();
   if (promptEl) promptEl.textContent = prompts[dayNum % prompts.length];
 
@@ -233,6 +226,7 @@ window.addEventListener("DOMContentLoaded", () => {
       btn.setAttribute("aria-selected", "true");
 
       document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
+
       const target = document.getElementById(`tab-${btn.dataset.tab}`);
       if (target) target.classList.add("active");
     });
@@ -241,6 +235,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // ---------------- JOURNAL ----------------
   if (journalEl) {
     journalEl.value = getLog(todayKey).journal;
+
     journalEl.addEventListener("input", () => {
       getLog(todayKey).journal = journalEl.value;
       saveState();
@@ -253,14 +248,9 @@ window.addEventListener("DOMContentLoaded", () => {
       const name = habitNameEl.value.trim();
       if (!name) return;
 
-      state.habits.push({
-        id: uid(),
-        name,
-        createdAt: Date.now(),
-        targetPerWeek: 7 // default target
-      });
-
+      state.habits.push({ id: uid(), name, createdAt: Date.now() });
       habitNameEl.value = "";
+
       saveState();
       renderToday();
       renderHabits();
@@ -344,14 +334,13 @@ window.addEventListener("DOMContentLoaded", () => {
     const logs = obj.logs && typeof obj.logs === "object" ? obj.logs : {};
 
     const cleanHabits = habits
-      .filter(h => h && typeof h === "object" && typeof h.name === "string")
-      .map(h => ({
+      .filter((h) => h && typeof h === "object" && typeof h.name === "string")
+      .map((h) => ({
         id: typeof h.id === "string" ? h.id : uid(),
         name: h.name.trim().slice(0, 40),
-        createdAt: typeof h.createdAt === "number" ? h.createdAt : Date.now(),
-        targetPerWeek: clampInt(h.targetPerWeek, 1, 7, 7)
+        createdAt: typeof h.createdAt === "number" ? h.createdAt : Date.now()
       }))
-      .filter(h => h.name.length > 0);
+      .filter((h) => h.name.length > 0);
 
     const cleanLogs = {};
     for (const [dayKey, log] of Object.entries(logs)) {
@@ -359,7 +348,7 @@ window.addEventListener("DOMContentLoaded", () => {
       if (!log || typeof log !== "object") continue;
 
       const completed = Array.isArray(log.completed)
-        ? log.completed.filter(x => typeof x === "string")
+        ? log.completed.filter((x) => typeof x === "string")
         : [];
       const journal = typeof log.journal === "string" ? log.journal : "";
 
@@ -379,6 +368,7 @@ window.addEventListener("DOMContentLoaded", () => {
         app: "Quiet Daily",
         data: state
       };
+
       const filename = `quiet-daily-backup-${startOfDayISO(new Date())}.json`;
       downloadTextFile(filename, JSON.stringify(payload, null, 2));
       showToast("Backup exported.");
@@ -398,6 +388,8 @@ window.addEventListener("DOMContentLoaded", () => {
       try {
         const text = await file.text();
         const parsed = JSON.parse(text);
+
+        // Accept either {data:{habits,logs}} (our export) OR {habits,logs} (raw)
         const incoming = parsed && parsed.data ? parsed.data : parsed;
 
         const clean = sanitizeImportedState(incoming);
@@ -491,30 +483,16 @@ window.addEventListener("DOMContentLoaded", () => {
 
       const meta = document.createElement("div");
       meta.className = "meta";
-      const target = clampInt(h.targetPerWeek, 1, 7, 7);
-      meta.textContent = `Target: ${target}/week • Streak: ${streakFor(h.id)}`;
+      meta.textContent = `Streak: ${streakFor(h.id)}`;
 
       textWrap.append(name, meta);
       left.append(dot, textWrap);
 
-      // Controls row
-   const controls = document.createElement("div");
-controls.className = "habitControls";
+      const controls = document.createElement("div");
+      controls.style.display = "flex";
+      controls.style.gap = "8px";
+      controls.style.alignItems = "center";
 
-      // Target select (1..7)
-      const sel = document.createElement("select");
-      sel.className = "targetSelect";
-      sel.setAttribute("aria-label", `Set target for "${h.name}"`);
-      for (let i = 1; i <= 7; i++) {
-        const opt = document.createElement("option");
-        opt.value = String(i);
-        opt.textContent = `${i}/wk`;
-        sel.append(opt);
-      }
-      sel.value = String(target);
-      sel.addEventListener("change", () => setTarget(h.id, sel.value));
-
-      // Up / Down
       const up = document.createElement("button");
       up.className = "iconBtn";
       up.textContent = "↑";
@@ -529,7 +507,6 @@ controls.className = "habitControls";
       down.setAttribute("aria-label", `Move "${h.name}" down`);
       down.addEventListener("click", () => moveHabit(h.id, 1));
 
-      // Delete
       const del = document.createElement("button");
       del.className = "iconBtn";
       del.textContent = "Delete";
@@ -549,7 +526,7 @@ controls.className = "habitControls";
         renderWeekly();
       });
 
-      controls.append(sel, up, down, del);
+      controls.append(up, down, del);
 
       item.append(left, controls);
       list.append(item);
@@ -564,6 +541,7 @@ controls.className = "habitControls";
     weeklyEmpty.classList.toggle("hidden", state.habits.length !== 0);
     if (state.habits.length === 0) return;
 
+    // weekOffset: 0 = this week, 1 = last week
     const base = addDays(new Date(), -7 * weekOffset);
     const weekStartISO = startOfWeekISO(base);
     const weekStartDate = isoToDate(weekStartISO);
@@ -581,30 +559,18 @@ controls.className = "habitControls";
       name.className = "weekName";
       name.textContent = h.name;
 
+      // Count completed days this week
       let count = 0;
       for (let i = 0; i < 7; i++) {
         const dayKey = startOfDayISO(addDays(weekStartDate, i));
         if (isCompletedOnDay(dayKey, h.id)) count++;
       }
 
-      const target = clampInt(h.targetPerWeek, 1, 7, 7);
-      const pct = Math.min(100, Math.round((count / target) * 100));
-
       const meta = document.createElement("div");
       meta.className = "weekMeta";
-      meta.textContent = `${count}/${target}`;
+      meta.textContent = `${count}/7`;
 
       top.append(name, meta);
-
-      // Progress bar
-      const bar = document.createElement("div");
-      bar.className = "progressBar";
-
-      const fill = document.createElement("div");
-      fill.className = "progressFill";
-      fill.style.width = `${pct}%`;
-
-      bar.append(fill);
 
       const grid = document.createElement("div");
       grid.className = "weekGrid";
@@ -631,10 +597,11 @@ controls.className = "habitControls";
 
         btn.append(lab, dot);
         btn.addEventListener("click", () => toggleCompletedForDay(dayKey, h.id));
+
         grid.append(btn);
       }
 
-      row.append(top, bar, grid);
+      row.append(top, grid);
       weeklyWrap.append(row);
     });
   }
