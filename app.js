@@ -7,6 +7,7 @@
    - Offline-only badge
    - Soft offline toast
    - Version / cache / build labels (Settings)
+   - Weekly history (7-day tap-to-toggle per habit)
 */
 
 const STORAGE_KEY = "quiet_daily_state_v1";
@@ -25,6 +26,26 @@ function startOfDayISO(d = new Date()) {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
   return x.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function isoToDate(iso) {
+  return new Date(iso + "T00:00:00");
+}
+
+function addDays(date, delta) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + delta);
+  return d;
+}
+
+function startOfWeekISO(date = new Date()) {
+  // Monday-start week: Monday = 0 ... Sunday = 6
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay(); // Sun=0..Sat=6
+  const mondayIndex = (day + 6) % 7; // Mon=0, Tue=1 ... Sun=6
+  d.setDate(d.getDate() - mondayIndex);
+  return startOfDayISO(d);
 }
 
 // ---------------- STATE ----------------
@@ -67,6 +88,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const addHabitBtn = document.getElementById("addHabit");
   const resetBtn = document.getElementById("reset");
+
+  // Weekly elements
+  const weeklyWrap = document.getElementById("weeklyWrap");
+  const weeklyEmpty = document.getElementById("weeklyEmpty");
 
   // ---------------- OFFLINE BADGE ----------------
   function updateNetStatus() {
@@ -115,20 +140,38 @@ window.addEventListener("DOMContentLoaded", () => {
     return state.logs[dayKey];
   }
 
-  function isCompletedToday(habitId) {
-    return getLog(todayKey).completed.includes(habitId);
+  function setCompletedForDay(dayKey, habitId, done) {
+    const log = getLog(dayKey);
+    const has = log.completed.includes(habitId);
+
+    if (done && !has) log.completed.push(habitId);
+    if (!done && has) log.completed = log.completed.filter((id) => id !== habitId);
+
+    saveState();
   }
 
-  function toggleCompletedToday(habitId) {
-    const log = getLog(todayKey);
-    const idx = log.completed.indexOf(habitId);
-
-    if (idx >= 0) log.completed.splice(idx, 1);
+  function toggleCompletedForDay(dayKey, habitId) {
+    const log = getLog(dayKey);
+    const has = log.completed.includes(habitId);
+    if (has) log.completed = log.completed.filter((id) => id !== habitId);
     else log.completed.push(habitId);
 
     saveState();
     renderToday();
     renderHabits();
+    renderWeekly();
+  }
+
+  function isCompletedOnDay(dayKey, habitId) {
+    return getLog(dayKey).completed.includes(habitId);
+  }
+
+  function isCompletedToday(habitId) {
+    return isCompletedOnDay(todayKey, habitId);
+  }
+
+  function toggleCompletedToday(habitId) {
+    toggleCompletedForDay(todayKey, habitId);
   }
 
   function streakFor(habitId) {
@@ -196,6 +239,7 @@ window.addEventListener("DOMContentLoaded", () => {
       saveState();
       renderToday();
       renderHabits();
+      renderWeekly();
     });
 
     habitNameEl.addEventListener("keydown", (e) => {
@@ -335,10 +379,84 @@ window.addEventListener("DOMContentLoaded", () => {
         saveState();
         renderToday();
         renderHabits();
+        renderWeekly();
       });
 
       item.append(left, del);
       list.append(item);
+    });
+  }
+
+  // ---------------- RENDER: WEEKLY ----------------
+  function renderWeekly() {
+    if (!weeklyWrap || !weeklyEmpty) return;
+
+    weeklyWrap.innerHTML = "";
+
+    weeklyEmpty.classList.toggle("hidden", state.habits.length !== 0);
+
+    if (state.habits.length === 0) return;
+
+    const weekStartISO = startOfWeekISO(new Date());
+    const weekStartDate = isoToDate(weekStartISO);
+
+    const labels = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+    state.habits.forEach((h) => {
+      const row = document.createElement("div");
+      row.className = "weekRow";
+
+      const top = document.createElement("div");
+      top.className = "weekTop";
+
+      const name = document.createElement("div");
+      name.className = "weekName";
+      name.textContent = h.name;
+
+      // Count completed days this week
+      let count = 0;
+      for (let i = 0; i < 7; i++) {
+        const dayKey = startOfDayISO(addDays(weekStartDate, i));
+        if (isCompletedOnDay(dayKey, h.id)) count++;
+      }
+
+      const meta = document.createElement("div");
+      meta.className = "weekMeta";
+      meta.textContent = `${count}/7`;
+
+      top.append(name, meta);
+
+      const grid = document.createElement("div");
+      grid.className = "weekGrid";
+
+      for (let i = 0; i < 7; i++) {
+        const dayDate = addDays(weekStartDate, i);
+        const dayKey = startOfDayISO(dayDate);
+        const done = isCompletedOnDay(dayKey, h.id);
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "dayBtn" + (done ? " done" : "");
+        btn.setAttribute("aria-label", `${h.name} ${labels[i]} ${done ? "completed" : "not completed"}`);
+
+        const lab = document.createElement("div");
+        lab.className = "dayLabel";
+        lab.textContent = labels[i];
+
+        const dot = document.createElement("div");
+        dot.className = "dayDot";
+
+        btn.append(lab, dot);
+
+        btn.addEventListener("click", () => {
+          toggleCompletedForDay(dayKey, h.id);
+        });
+
+        grid.append(btn);
+      }
+
+      row.append(top, grid);
+      weeklyWrap.append(row);
     });
   }
 
@@ -347,4 +465,5 @@ window.addEventListener("DOMContentLoaded", () => {
   setVersionLabels();
   renderToday();
   renderHabits();
+  renderWeekly();
 });
