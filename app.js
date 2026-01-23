@@ -7,7 +7,8 @@
    - Offline-only badge
    - Soft offline toast
    - Version / cache / build labels (Settings)
-   - Weekly history (7-day tap-to-toggle per habit)
+   - Weekly history (This week / Last week selector)
+   - Export / Import backup (.json)
 */
 
 const STORAGE_KEY = "quiet_daily_state_v1";
@@ -94,17 +95,10 @@ window.addEventListener("DOMContentLoaded", () => {
   const weeklyEmpty = document.getElementById("weeklyEmpty");
   const weekSelect = document.getElementById("weekSelect");
 
-let weekOffset = 0; // 0 = this week, 1 = last week
-
-if (weekSelect) {
-  weekSelect.value = "0";
-  weekSelect.addEventListener("change", () => {
-    weekOffset = Number(weekSelect.value) || 0;
-    renderWeekly();
-  });
-}
-
-
+  // Export/Import
+  const exportBtn = document.getElementById("exportData");
+  const importBtn = document.getElementById("importBtn");
+  const importFile = document.getElementById("importFile");
 
   // ---------------- OFFLINE BADGE ----------------
   function updateNetStatus() {
@@ -153,14 +147,8 @@ if (weekSelect) {
     return state.logs[dayKey];
   }
 
-  function setCompletedForDay(dayKey, habitId, done) {
-    const log = getLog(dayKey);
-    const has = log.completed.includes(habitId);
-
-    if (done && !has) log.completed.push(habitId);
-    if (!done && has) log.completed = log.completed.filter((id) => id !== habitId);
-
-    saveState();
+  function isCompletedOnDay(dayKey, habitId) {
+    return getLog(dayKey).completed.includes(habitId);
   }
 
   function toggleCompletedForDay(dayKey, habitId) {
@@ -173,10 +161,6 @@ if (weekSelect) {
     renderToday();
     renderHabits();
     renderWeekly();
-  }
-
-  function isCompletedOnDay(dayKey, habitId) {
-    return getLog(dayKey).completed.includes(habitId);
   }
 
   function isCompletedToday(habitId) {
@@ -300,6 +284,118 @@ if (weekSelect) {
     }
   }
 
+  // ---------------- WEEK SELECTOR ----------------
+  let weekOffset = 0; // 0 = this week, 1 = last week
+
+  if (weekSelect) {
+    weekSelect.value = "0";
+    weekSelect.addEventListener("change", () => {
+      weekOffset = Number(weekSelect.value) || 0;
+      renderWeekly();
+    });
+  }
+
+  // ---------------- EXPORT / IMPORT (SETTINGS) ----------------
+  function downloadTextFile(filename, text) {
+    const blob = new Blob([text], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+  }
+
+  function sanitizeImportedState(obj) {
+    if (!obj || typeof obj !== "object") return null;
+
+    const habits = Array.isArray(obj.habits) ? obj.habits : [];
+    const logs = obj.logs && typeof obj.logs === "object" ? obj.logs : {};
+
+    const cleanHabits = habits
+      .filter(h => h && typeof h === "object" && typeof h.name === "string")
+      .map(h => ({
+        id: typeof h.id === "string" ? h.id : uid(),
+        name: h.name.trim().slice(0, 40),
+        createdAt: typeof h.createdAt === "number" ? h.createdAt : Date.now()
+      }))
+      .filter(h => h.name.length > 0);
+
+    const cleanLogs = {};
+    for (const [dayKey, log] of Object.entries(logs)) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) continue;
+      if (!log || typeof log !== "object") continue;
+
+      const completed = Array.isArray(log.completed)
+        ? log.completed.filter(x => typeof x === "string")
+        : [];
+      const journal = typeof log.journal === "string" ? log.journal : "";
+
+      cleanLogs[dayKey] = {
+        completed: Array.from(new Set(completed)),
+        journal
+      };
+    }
+
+    return { habits: cleanHabits, logs: cleanLogs };
+  }
+
+  if (exportBtn) {
+    exportBtn.addEventListener("click", () => {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        app: "Quiet Daily",
+        data: state
+      };
+
+      const filename = `quiet-daily-backup-${startOfDayISO(new Date())}.json`;
+      downloadTextFile(filename, JSON.stringify(payload, null, 2));
+      showToast("Backup exported.");
+    });
+  }
+
+  if (importBtn && importFile) {
+    importBtn.addEventListener("click", () => {
+      importFile.value = "";
+      importFile.click();
+    });
+
+    importFile.addEventListener("change", async () => {
+      const file = importFile.files && importFile.files[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+
+        // Accept either {data:{habits,logs}} (our export) OR {habits,logs} (raw)
+        const incoming = parsed && parsed.data ? parsed.data : parsed;
+
+        const clean = sanitizeImportedState(incoming);
+        if (!clean) throw new Error("Invalid file");
+
+        state.habits = clean.habits;
+        state.logs = clean.logs;
+
+        saveState();
+
+        renderToday();
+        renderHabits();
+        renderWeekly();
+        setVersionLabels();
+
+        showToast("Backup imported.");
+      } catch (err) {
+        console.error(err);
+        showToast("Import failed — please choose a valid Quiet Daily backup.", "offline");
+      }
+    });
+  }
+
   // ---------------- RENDER: TODAY ----------------
   function renderToday() {
     const list = document.getElementById("todayHabits");
@@ -405,18 +501,15 @@ if (weekSelect) {
     if (!weeklyWrap || !weeklyEmpty) return;
 
     weeklyWrap.innerHTML = "";
-
     weeklyEmpty.classList.toggle("hidden", state.habits.length !== 0);
-
     if (state.habits.length === 0) return;
 
-  // weekOffset: 0 = this week, 1 = last week
-const base = addDays(new Date(), -7 * weekOffset);
-const weekStartISO = startOfWeekISO(base);
-const weekStartDate = isoToDate(weekStartISO);
+    // weekOffset: 0 = this week, 1 = last week
+    const base = addDays(new Date(), -7 * weekOffset);
+    const weekStartISO = startOfWeekISO(base);
+    const weekStartDate = isoToDate(weekStartISO);
 
-
-    const labels = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+    const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
     state.habits.forEach((h) => {
       const row = document.createElement("div");
@@ -429,7 +522,6 @@ const weekStartDate = isoToDate(weekStartISO);
       name.className = "weekName";
       name.textContent = h.name;
 
-      // Count completed days this week
       let count = 0;
       for (let i = 0; i < 7; i++) {
         const dayKey = startOfDayISO(addDays(weekStartDate, i));
@@ -463,10 +555,7 @@ const weekStartDate = isoToDate(weekStartISO);
         dot.className = "dayDot";
 
         btn.append(lab, dot);
-
-        btn.addEventListener("click", () => {
-          toggleCompletedForDay(dayKey, h.id);
-        });
+        btn.addEventListener("click", () => toggleCompletedForDay(dayKey, h.id));
 
         grid.append(btn);
       }

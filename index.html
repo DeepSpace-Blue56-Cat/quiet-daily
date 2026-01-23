@@ -27,28 +27,11 @@
       </div>
     </div>
 
-    <!-- TABS -->
+    <!-- Tabs -->
     <nav class="tabs" role="tablist" aria-label="Main tabs">
-      <button class="tab active"
-              role="tab"
-              aria-selected="true"
-              data-tab="today">
-        Today
-      </button>
-
-      <button class="tab"
-              role="tab"
-              aria-selected="false"
-              data-tab="habits">
-        Habits
-      </button>
-
-      <button class="tab"
-              role="tab"
-              aria-selected="false"
-              data-tab="settings">
-        Settings
-      </button>
+      <button class="tab active" role="tab" aria-selected="true" data-tab="today">Today</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="habits">Habits</button>
+      <button class="tab" role="tab" aria-selected="false" data-tab="settings">Settings</button>
     </nav>
   </header>
 
@@ -58,36 +41,29 @@
     <section id="tab-today" class="panel active" role="tabpanel">
       <div class="card">
         <h2>Today’s Habits</h2>
-
-        <div id="todayEmpty" class="hint hidden">
-          No habits yet. Add one on the Habits tab.
-        </div>
-
+        <div id="todayEmpty" class="hint hidden">No habits yet. Add one on the Habits tab.</div>
         <div id="todayHabits" class="list"></div>
       </div>
 
-<div class="card">
-  <div class="weekHeader">
-    <h2>Week</h2>
+      <div class="card">
+        <div class="weekHeader">
+          <h2>Week</h2>
+          <select id="weekSelect" class="weekSelect" aria-label="Select week">
+            <option value="0">This week</option>
+            <option value="1">Last week</option>
+          </select>
+        </div>
 
-    <select id="weekSelect" class="weekSelect" aria-label="Select week">
-      <option value="0">This week</option>
-      <option value="1">Last week</option>
-    </select>
-  </div>
-
-  <p class="small muted">Tap a day to toggle completion.</p>
-  <div id="weeklyEmpty" class="hint hidden">Add a habit to see weekly history.</div>
-  <div id="weeklyWrap" class="weeklyWrap"></div>
-</div>
-
+        <p class="small muted">Tap a day to toggle completion.</p>
+        <div id="weeklyEmpty" class="hint hidden">Add a habit to see weekly history.</div>
+        <div id="weeklyWrap" class="weeklyWrap"></div>
+      </div>
 
       <div class="card">
         <h2>Today’s Note</h2>
         <p id="prompt" class="prompt"></p>
 
-        <textarea id="journal"
-                  placeholder="Write a few gentle lines…"></textarea>
+        <textarea id="journal" placeholder="Write a few gentle lines…"></textarea>
 
         <div class="row">
           <span class="small">Autosaved</span>
@@ -98,8 +74,7 @@
       <div class="card">
         <h2>Install on iPhone</h2>
         <p class="small">
-          Open this page in Safari → Share →
-          <b>Add to Home Screen</b>
+          Open this page in Safari → Share → <b>Add to Home Screen</b>
         </p>
       </div>
     </section>
@@ -110,28 +85,16 @@
         <h2>Add a Habit</h2>
 
         <div class="row">
-          <input id="habitName"
-                 type="text"
-                 placeholder="e.g., Drink water"
-                 maxlength="40" />
-
-          <button id="addHabit" class="primary">
-            Add
-          </button>
+          <input id="habitName" type="text" placeholder="e.g., Drink water" maxlength="40" />
+          <button id="addHabit" class="primary">Add</button>
         </div>
 
-        <p class="small muted">
-          Keep it tiny. One simple habit is enough.
-        </p>
+        <p class="small muted">Keep it tiny. One simple habit is enough.</p>
       </div>
 
       <div class="card">
         <h2>Your Habits</h2>
-
-        <div id="habitsEmpty" class="hint hidden">
-          No habits yet.
-        </div>
-
+        <div id="habitsEmpty" class="hint hidden">No habits yet.</div>
         <div id="habitsList" class="list"></div>
       </div>
     </section>
@@ -142,13 +105,22 @@
         <h2>Settings</h2>
 
         <div class="row">
-          <button id="reset" class="danger">
-            Reset all data
-          </button>
+          <button id="exportData" class="primary">Export backup</button>
+          <button id="importBtn" class="iconBtn">Import</button>
+        </div>
+
+        <input id="importFile" type="file" accept="application/json" style="display:none" />
+
+        <p class="small muted" style="margin-top:10px;">
+          Export saves your habits and journal to a file. Import restores it on this device.
+        </p>
+
+        <div class="row" style="margin-top:10px;">
+          <button id="reset" class="danger">Reset all data</button>
         </div>
 
         <p class="small muted">
-          This clears habits and journal entries stored on this device.
+          Reset clears habits and journal entries stored on this device.
         </p>
       </div>
 
@@ -156,8 +128,7 @@
         <h2>About</h2>
 
         <p class="small">
-          Quiet Daily is a gentle habit + journal space.
-          No login. No pressure.
+          Quiet Daily is a gentle habit + journal space. No login. No pressure.
         </p>
 
         <div class="aboutMeta">
