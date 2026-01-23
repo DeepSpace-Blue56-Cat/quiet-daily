@@ -10,10 +10,15 @@
    - Weekly history (This week / Last week selector)
    - Export / Import backup (.json)
    - Reorder habits (Up / Down)
-   - (Targets temporarily removed from UI)
+   - Support Quiet Daily (Phase 1: thank-you only)
 */
 
+// ✅ SET THIS to your real support page URL
+// Examples (choose one later): Stripe payment link, Ko-fi, Buy Me a Coffee, LemonSqueezy, etc.
+const SUPPORT_URL = "https://example.com"; // <-- replace me
+
 const STORAGE_KEY = "quiet_daily_state_v1";
+const SUPPORTER_KEY = "quiet_daily_supporter_v1";
 
 // ---------------- PROMPTS ----------------
 const prompts = [
@@ -30,17 +35,14 @@ function startOfDayISO(d = new Date()) {
   x.setHours(0, 0, 0, 0);
   return x.toISOString().slice(0, 10); // YYYY-MM-DD
 }
-
 function isoToDate(iso) {
   return new Date(iso + "T00:00:00");
 }
-
 function addDays(date, delta) {
   const d = new Date(date);
   d.setDate(d.getDate() + delta);
   return d;
 }
-
 function startOfWeekISO(date = new Date()) {
   // Monday-start week: Monday = 0 ... Sunday = 6
   const d = new Date(date);
@@ -59,8 +61,6 @@ function loadState() {
     const parsed = JSON.parse(raw);
     if (!parsed.habits || !parsed.logs) return { habits: [], logs: {} };
 
-    // Keep any extra habit fields if they exist (like old targets),
-    // but we won’t display them.
     parsed.habits = Array.isArray(parsed.habits) ? parsed.habits : [];
     parsed.logs = parsed.logs && typeof parsed.logs === "object" ? parsed.logs : {};
 
@@ -69,11 +69,9 @@ function loadState() {
     return { habits: [], logs: {} };
   }
 }
-
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
-
 function uid() {
   return crypto.randomUUID
     ? crypto.randomUUID()
@@ -83,7 +81,7 @@ function uid() {
 const state = loadState();
 const todayKey = startOfDayISO();
 
-// ---------------- INIT AFTER DOM READY ----------------
+// ---------------- INIT ----------------
 window.addEventListener("DOMContentLoaded", () => {
   // Elements
   const netStatusEl = document.getElementById("netStatus");
@@ -108,10 +106,14 @@ window.addEventListener("DOMContentLoaded", () => {
   const importBtn = document.getElementById("importBtn");
   const importFile = document.getElementById("importFile");
 
+  // Support (NEW)
+  const supportBtn = document.getElementById("supportBtn");
+  const supporterStatus = document.getElementById("supporterStatus");
+  const supporterReset = document.getElementById("supporterReset");
+
   // ---------------- OFFLINE BADGE ----------------
   function updateNetStatus() {
     if (!netStatusEl) return;
-
     if (navigator.onLine) {
       netStatusEl.style.display = "none";
     } else {
@@ -120,36 +122,83 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // ---------------- OFFLINE TOAST ----------------
+  // ---------------- TOAST ----------------
   let toastTimer = null;
-
   function showToast(message, kind = "") {
     if (!toastEl) return;
-
     toastEl.textContent = message;
-    toastEl.className = "toast"; // reset classes
+    toastEl.className = "toast";
     if (kind) toastEl.classList.add(kind);
-
     toastEl.classList.add("show");
-
     if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-      toastEl.classList.remove("show");
-    }, 2600);
+    toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2600);
   }
 
   window.addEventListener("online", () => updateNetStatus());
-
   window.addEventListener("offline", () => {
     updateNetStatus();
     showToast("You’re offline — everything will still save on this device.", "offline");
   });
 
+  // ---------------- SUPPORTER STATE ----------------
+  function isSupporter() {
+    return localStorage.getItem(SUPPORTER_KEY) === "yes";
+  }
+  function setSupporter(value) {
+    localStorage.setItem(SUPPORTER_KEY, value ? "yes" : "no");
+    renderSupporter();
+  }
+  function renderSupporter() {
+    if (!supporterStatus) return;
+
+    if (isSupporter()) {
+      supporterStatus.textContent = "Supporter: Thank you 💛";
+    } else {
+      supporterStatus.textContent = "Support is optional — Quiet Daily stays fully usable for everyone.";
+    }
+  }
+
+  if (supportBtn) {
+    supportBtn.addEventListener("click", () => {
+      if (!SUPPORT_URL || SUPPORT_URL === "https://example.com") {
+        alert("Set your SUPPORT_URL in app.js first.");
+        return;
+      }
+
+      // Open support page (same tab keeps it simple for iPhone)
+      window.location.href = SUPPORT_URL;
+
+      // Note: We can’t auto-confirm payment without a backend.
+      // The user will come back using the back button.
+      // We’ll ask for gentle confirmation on next app load:
+      localStorage.setItem("quiet_daily_pending_support", "1");
+    });
+  }
+
+  // On load: if they recently went to support link, gently ask once
+  if (localStorage.getItem("quiet_daily_pending_support") === "1") {
+    localStorage.removeItem("quiet_daily_pending_support");
+    // Only ask if not already supporter
+    if (!isSupporter()) {
+      const ok = confirm("Welcome back 💛\n\nDid you complete your support for Quiet Daily?");
+      if (ok) {
+        setSupporter(true);
+        showToast("Thank you for supporting Quiet Daily.");
+      }
+    }
+  }
+
+  if (supporterReset) {
+    supporterReset.addEventListener("click", () => {
+      if (!confirm("Reset supporter status on this device?")) return;
+      setSupporter(false);
+      showToast("Supporter status reset.");
+    });
+  }
+
   // ---------------- LOG HELPERS ----------------
   function getLog(dayKey) {
-    if (!state.logs[dayKey]) {
-      state.logs[dayKey] = { completed: [], journal: "" };
-    }
+    if (!state.logs[dayKey]) state.logs[dayKey] = { completed: [], journal: "" };
     return state.logs[dayKey];
   }
 
@@ -160,7 +209,6 @@ window.addEventListener("DOMContentLoaded", () => {
   function toggleCompletedForDay(dayKey, habitId) {
     const log = getLog(dayKey);
     const has = log.completed.includes(habitId);
-
     if (has) log.completed = log.completed.filter((id) => id !== habitId);
     else log.completed.push(habitId);
 
@@ -211,7 +259,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // ---------------- HEADER / PROMPT ----------------
   if (dateLabelEl) dateLabelEl.textContent = todayKey;
-
   const dayNum = new Date().getDate();
   if (promptEl) promptEl.textContent = prompts[dayNum % prompts.length];
 
@@ -235,7 +282,6 @@ window.addEventListener("DOMContentLoaded", () => {
   // ---------------- JOURNAL ----------------
   if (journalEl) {
     journalEl.value = getLog(todayKey).journal;
-
     journalEl.addEventListener("input", () => {
       getLog(todayKey).journal = journalEl.value;
       saveState();
@@ -271,7 +317,7 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ---------------- VERSION LABELS (SETTINGS) ----------------
+  // ---------------- VERSION LABELS ----------------
   async function setVersionLabels() {
     const buildEl = document.getElementById("buildDate");
     if (buildEl) buildEl.textContent = new Date().toISOString().slice(0, 10);
@@ -312,7 +358,7 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ---------------- EXPORT / IMPORT (SETTINGS) ----------------
+  // ---------------- EXPORT / IMPORT ----------------
   function downloadTextFile(filename, text) {
     const blob = new Blob([text], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -389,9 +435,7 @@ window.addEventListener("DOMContentLoaded", () => {
         const text = await file.text();
         const parsed = JSON.parse(text);
 
-        // Accept either {data:{habits,logs}} (our export) OR {habits,logs} (raw)
         const incoming = parsed && parsed.data ? parsed.data : parsed;
-
         const clean = sanitizeImportedState(incoming);
         if (!clean) throw new Error("Invalid file");
 
@@ -515,9 +559,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
         state.habits = state.habits.filter((x) => x.id !== h.id);
         Object.keys(state.logs).forEach((k) => {
-          state.logs[k].completed = (state.logs[k].completed || []).filter(
-            (id) => id !== h.id
-          );
+          state.logs[k].completed = (state.logs[k].completed || []).filter((id) => id !== h.id);
         });
 
         saveState();
@@ -541,11 +583,9 @@ window.addEventListener("DOMContentLoaded", () => {
     weeklyEmpty.classList.toggle("hidden", state.habits.length !== 0);
     if (state.habits.length === 0) return;
 
-    // weekOffset: 0 = this week, 1 = last week
     const base = addDays(new Date(), -7 * weekOffset);
     const weekStartISO = startOfWeekISO(base);
     const weekStartDate = isoToDate(weekStartISO);
-
     const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
     state.habits.forEach((h) => {
@@ -559,7 +599,6 @@ window.addEventListener("DOMContentLoaded", () => {
       name.className = "weekName";
       name.textContent = h.name;
 
-      // Count completed days this week
       let count = 0;
       for (let i = 0; i < 7; i++) {
         const dayKey = startOfDayISO(addDays(weekStartDate, i));
@@ -583,10 +622,7 @@ window.addEventListener("DOMContentLoaded", () => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "dayBtn" + (done ? " done" : "");
-        btn.setAttribute(
-          "aria-label",
-          `${h.name} ${labels[i]} ${done ? "completed" : "not completed"}`
-        );
+        btn.setAttribute("aria-label", `${h.name} ${labels[i]} ${done ? "completed" : "not completed"}`);
 
         const lab = document.createElement("div");
         lab.className = "dayLabel";
@@ -606,9 +642,10 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ---------------- INIT ----------------
+  // ---------------- INIT RUN ----------------
   updateNetStatus();
   setVersionLabels();
+  renderSupporter();
   renderToday();
   renderHabits();
   renderWeekly();
