@@ -92,6 +92,19 @@ window.addEventListener("DOMContentLoaded", () => {
   // Weekly elements
   const weeklyWrap = document.getElementById("weeklyWrap");
   const weeklyEmpty = document.getElementById("weeklyEmpty");
+  const weekSelect = document.getElementById("weekSelect");
+
+let weekOffset = 0; // 0 = this week, 1 = last week
+
+if (weekSelect) {
+  weekSelect.value = "0";
+  weekSelect.addEventListener("change", () => {
+    weekOffset = Number(weekSelect.value) || 0;
+    renderWeekly();
+  });
+}
+
+
 
   // ---------------- OFFLINE BADGE ----------------
   function updateNetStatus() {
@@ -397,8 +410,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (state.habits.length === 0) return;
 
-    const weekStartISO = startOfWeekISO(new Date());
-    const weekStartDate = isoToDate(weekStartISO);
+  // weekOffset: 0 = this week, 1 = last week
+const base = addDays(new Date(), -7 * weekOffset);
+const weekStartISO = startOfWeekISO(base);
+const weekStartDate = isoToDate(weekStartISO);
+
 
     const labels = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 

@@ -67,11 +67,20 @@
       </div>
 
 <div class="card">
-  <h2>This Week</h2>
+  <div class="weekHeader">
+    <h2>Week</h2>
+
+    <select id="weekSelect" class="weekSelect" aria-label="Select week">
+      <option value="0">This week</option>
+      <option value="1">Last week</option>
+    </select>
+  </div>
+
   <p class="small muted">Tap a day to toggle completion.</p>
   <div id="weeklyEmpty" class="hint hidden">Add a habit to see weekly history.</div>
   <div id="weeklyWrap" class="weeklyWrap"></div>
 </div>
+
 
       <div class="card">
         <h2>Today’s Note</h2>

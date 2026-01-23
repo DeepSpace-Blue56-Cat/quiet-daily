@@ -307,6 +307,30 @@ button.danger{
   gap: 8px;
 }
 
+.weekHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.weekHeader h2{
+  margin: 0;
+}
+
+.weekSelect{
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+
+
+
 .dayBtn{
   border: 1px solid var(--line);
   background: #fff;
