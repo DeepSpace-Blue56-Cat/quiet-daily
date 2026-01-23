@@ -9,43 +9,72 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
+  <!-- Offline toast -->
   <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
+
   <header class="top">
-<div class="brand">
-  <div class="logo" aria-hidden="true">QD</div>
-  <div class="brandText">
-    <div class="titleRow">
-      <h1>Quiet Daily</h1>
-      <span id="netStatus" class="statusPill" aria-live="polite">Online</span>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">QD</div>
+
+      <div class="brandText">
+        <div class="titleRow">
+          <h1>Quiet Daily</h1>
+          <span id="netStatus" class="statusPill">Offline</span>
+        </div>
+        <p class="subtitle">Showing up counts.</p>
+      </div>
     </div>
-    <p class="subtitle">Showing up counts.</p>
-  </div>
-</div>
+
+    <!-- TABS -->
     <nav class="tabs" role="tablist" aria-label="Main tabs">
-      <button class="tab active" role="tab" aria-selected="true" data-tab="today">Today</button>
-      <button class="tab" role="tab" aria-selected="false" data-tab="habits">Habits</button>
-      <button class="tab" role="tab" aria-selected="false" data-tab="settings">Settings</button>
+      <button class="tab active"
+              role="tab"
+              aria-selected="true"
+              data-tab="today">
+        Today
+      </button>
+
+      <button class="tab"
+              role="tab"
+              aria-selected="false"
+              data-tab="habits">
+        Habits
+      </button>
+
+      <button class="tab"
+              role="tab"
+              aria-selected="false"
+              data-tab="settings">
+        Settings
+      </button>
     </nav>
   </header>
 
   <main class="container">
+
     <!-- TODAY -->
     <section id="tab-today" class="panel active" role="tabpanel">
       <div class="card">
         <h2>Today’s Habits</h2>
+
         <div id="todayEmpty" class="hint hidden">
           No habits yet. Add one on the Habits tab.
         </div>
+
         <div id="todayHabits" class="list"></div>
       </div>
 
       <div class="card">
         <h2>Today’s Note</h2>
         <p id="prompt" class="prompt"></p>
-        <textarea id="journal" placeholder="Write a few gentle lines…"></textarea>
+
+        <textarea id="journal"
+                  placeholder="Write a few gentle lines…"></textarea>
+
         <div class="row">
-          <span class="small" id="autosave">Autosaved</span>
+          <span class="small">Autosaved</span>
           <span class="small" id="dateLabel"></span>
         </div>
       </div>
@@ -53,7 +82,8 @@
       <div class="card">
         <h2>Install on iPhone</h2>
         <p class="small">
-          Open this page in Safari → Share → <b>Add to Home Screen</b>.
+          Open this page in Safari → Share →
+          <b>Add to Home Screen</b>
         </p>
       </div>
     </section>
@@ -62,16 +92,30 @@
     <section id="tab-habits" class="panel" role="tabpanel">
       <div class="card">
         <h2>Add a Habit</h2>
+
         <div class="row">
-          <input id="habitName" type="text" placeholder="e.g., Drink water" maxlength="40" />
-          <button id="addHabit" class="primary">Add</button>
+          <input id="habitName"
+                 type="text"
+                 placeholder="e.g., Drink water"
+                 maxlength="40" />
+
+          <button id="addHabit" class="primary">
+            Add
+          </button>
         </div>
-        <p class="small muted">Keep it tiny. One simple habit is enough.</p>
+
+        <p class="small muted">
+          Keep it tiny. One simple habit is enough.
+        </p>
       </div>
 
       <div class="card">
         <h2>Your Habits</h2>
-        <div id="habitsEmpty" class="hint hidden">No habits yet.</div>
+
+        <div id="habitsEmpty" class="hint hidden">
+          No habits yet.
+        </div>
+
         <div id="habitsList" class="list"></div>
       </div>
     </section>
@@ -80,49 +124,55 @@
     <section id="tab-settings" class="panel" role="tabpanel">
       <div class="card">
         <h2>Settings</h2>
+
         <div class="row">
-          <button id="reset" class="danger">Reset all data</button>
+          <button id="reset" class="danger">
+            Reset all data
+          </button>
         </div>
+
         <p class="small muted">
           This clears habits and journal entries stored on this device.
         </p>
       </div>
 
-     <div class="card">
-  <h2>About</h2>
-  <p class="small">
-    Quiet Daily is a gentle habit + journal space. No login. No pressure.
-  </p>
+      <div class="card">
+        <h2>About</h2>
 
-  <div class="aboutMeta">
-    <div class="metaRow">
-      <span class="metaKey">Version</span>
-      <span class="metaVal" id="appVersion">—</span>
-    </div>
-    <div class="metaRow">
-      <span class="metaKey">Cache</span>
-      <span class="metaVal" id="cacheVersion">—</span>
-    </div>
-    <div class="metaRow">
-      <span class="metaKey">Build</span>
-      <span class="metaVal" id="buildDate">—</span>
-    </div>
-  </div>
-</div>
+        <p class="small">
+          Quiet Daily is a gentle habit + journal space.
+          No login. No pressure.
+        </p>
 
+        <div class="aboutMeta">
+          <div class="metaRow">
+            <span class="metaKey">Version</span>
+            <span class="metaVal" id="appVersion">—</span>
+          </div>
+
+          <div class="metaRow">
+            <span class="metaKey">Cache</span>
+            <span class="metaVal" id="cacheVersion">—</span>
+          </div>
+
+          <div class="metaRow">
+            <span class="metaKey">Build</span>
+            <span class="metaVal" id="buildDate">—</span>
+          </div>
+        </div>
+      </div>
     </section>
+
   </main>
 
-<script src="app.js"></script>
+  <script src="app.js"></script>
 
-<script>
-  // Register service worker for offline caching
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js").catch(console.error);
-    });
-  }
-</script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(console.error);
+      });
+    }
+  </script>
 </body>
 </html>
-
