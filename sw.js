@@ -1,7 +1,7 @@
 // sw.js — Quiet Daily offline cache (with cache version reporting)
 
-const APP_CACHE_VERSION = "v11";          // <-- bump when you want to force refresh
-const CACHE_NAME = "quiet-daily-v11";     // <-- keep aligned with APP_CACHE_VERSION
+const APP_CACHE_VERSION = "v12";          // <-- bump when you want to force refresh
+const CACHE_NAME = "quiet-daily-v12";     // <-- keep aligned with APP_CACHE_VERSION
 
 const ASSETS = [
   "./",

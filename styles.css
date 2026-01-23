@@ -381,4 +381,33 @@ button.danger{
   border-color: #1f2328;
 }
 
+/* Habits row layout: prevent controls from overlapping text */
+.item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+}
+
+.item .left{
+  min-width: 0;          /* allows ellipsis */
+  flex: 1 1 auto;
+}
+
+.habitControls{
+  flex: 0 0 auto;
+  display:flex;
+  align-items:center;
+  gap: 8px;
+}
+
+/* Make the target dropdown look like a small control */
+.targetSelect{
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 10px;
+  font-weight: 700;
+  color: var(--ink);
+}
 

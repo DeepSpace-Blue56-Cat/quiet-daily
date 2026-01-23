@@ -498,14 +498,12 @@ window.addEventListener("DOMContentLoaded", () => {
       left.append(dot, textWrap);
 
       // Controls row
-      const controls = document.createElement("div");
-      controls.style.display = "flex";
-      controls.style.gap = "8px";
-      controls.style.alignItems = "center";
+   const controls = document.createElement("div");
+controls.className = "habitControls";
 
       // Target select (1..7)
       const sel = document.createElement("select");
-      sel.className = "iconBtn";
+      sel.className = "targetSelect";
       sel.setAttribute("aria-label", `Set target for "${h.name}"`);
       for (let i = 1; i <= 7; i++) {
         const opt = document.createElement("option");
