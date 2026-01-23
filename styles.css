@@ -269,6 +269,21 @@ button.danger{
   gap: 12px;
 }
 
+.progressBar{
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  overflow: hidden;
+}
+
+.progressFill{
+  height: 100%;
+  width: 0%;
+  background: #1f2328;
+}
+
+
 .weekRow{
   border: 1px solid var(--line);
   background: #fff;
